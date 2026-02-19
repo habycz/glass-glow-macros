@@ -15,7 +15,7 @@ export async function analyzeNutritionLabel(base64Image: string, apiKey: string)
   }
 
   const client = new GoogleGenerativeAI(apiKey);
-  const model = client.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = client.getGenerativeModel({ model: "gemini-1.5-flash-002" });
 
   const base64Data = base64Image.includes("base64,")
     ? base64Image.split("base64,")[1]
