@@ -3,13 +3,15 @@ import { Camera } from "lucide-react";
 
 interface FABProps {
   onClick: () => void;
+  loading?: boolean;
 }
 
-const FAB: React.FC<FABProps> = ({ onClick }) => {
+const FAB: React.FC<FABProps> = ({ onClick, loading = false }) => {
   return (
     <button
       onClick={onClick}
-      className="fab-pulse flex items-center justify-center rounded-full text-white active:scale-95 transition-transform duration-150 select-none"
+      disabled={loading}
+      className="fab-pulse flex items-center justify-center rounded-full text-white active:scale-95 transition-transform duration-150 select-none disabled:opacity-70"
       style={{
         width: 64,
         height: 64,
@@ -17,7 +19,14 @@ const FAB: React.FC<FABProps> = ({ onClick }) => {
       }}
       aria-label="Log a meal"
     >
-      <Camera size={26} strokeWidth={2} />
+      {loading ? (
+        <div
+          className="animate-spin rounded-full border-2 border-white border-t-transparent"
+          style={{ width: 26, height: 26 }}
+        />
+      ) : (
+        <Camera size={26} strokeWidth={2} />
+      )}
     </button>
   );
 };

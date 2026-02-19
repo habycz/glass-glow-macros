@@ -1,10 +1,13 @@
 import React, { useState, useCallback } from "react";
+import { Settings } from "lucide-react";
 import CircularRing from "@/components/CircularRing";
 import MacroCard from "@/components/MacroCard";
 import FAB from "@/components/FAB";
 import FoodLog from "@/components/FoodLog";
 import LogMealSheet from "@/components/LogMealSheet";
+import SettingsModal from "@/components/SettingsModal";
 import { FoodEntry } from "@/types/food";
+import { toast } from "@/hooks/use-toast";
 
 const DAILY_GOAL = 2000;
 
@@ -17,6 +20,7 @@ interface Totals {
 
 const Index = () => {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [entries, setEntries] = useState<FoodEntry[]>([]);
   const [totals, setTotals] = useState<Totals>({ calories: 0, protein: 0, carbs: 0, fat: 0 });
 
@@ -28,6 +32,10 @@ const Index = () => {
       carbs: prev.carbs + entry.carbs,
       fat: prev.fat + entry.fat,
     }));
+    toast({
+      title: "Food logged successfully!",
+      description: `Added ${entry.calories} kcal to your daily total`,
+    });
   }, []);
 
   const handleDelete = useCallback((id: string) => {
@@ -63,6 +71,14 @@ const Index = () => {
                 {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
               </p>
             </div>
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+              style={{ background: "rgba(255,255,255,0.08)" }}
+              aria-label="Settings"
+            >
+              <Settings size={16} style={{ color: "rgba(255,255,255,0.7)" }} />
+            </button>
             <div
               className="glass-card px-3 py-1.5 flex items-center gap-1.5"
               style={{ borderRadius: "999px" }}
@@ -134,6 +150,13 @@ const Index = () => {
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         onLog={handleLog}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
       />
     </div>
   );
