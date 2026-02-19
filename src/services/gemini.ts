@@ -1,77 +1,74 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
-interface NutritionData {
+
+export interface NutritionData {
   calories: number;
   protein: number;
   carbs: number;
   fat: number;
 }
 
-const SYSTEM_PROMPT = "Analyze this nutrition label image. Return a raw JSON object (no markdown, no code block) with these exact keys: calories, protein, carbs, fat. All values should be numbers. If the label shows 'per 100g', use those values. Example response: {\"calories\": 200, \"protein\": 10, \"carbs\": 30, \"fat\": 8}";
+// 1. Paste your GROQ API Key here (or keep using the localStorage input in your UI)
+// If you want to hardcode it to test, put it inside the quotes below.
+const DEFAULT_API_KEY = "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"; 
 
-export async function analyzeNutritionLabel(base64Image: string, apiKey: string): Promise<NutritionData> {
+export async function analyzeNutritionLabel(base64Image: string, userApiKey?: string): Promise<NutritionData> {
+  const apiKey = userApiKey || DEFAULT_API_KEY;
+  
   if (!apiKey) {
-    throw new Error("API key is required");
+    throw new Error("API Key is missing. Please enter your Groq API Key in settings.");
   }
 
-  const client = new GoogleGenerativeAI(apiKey);
-  const model = client.getGenerativeModel({ model: "gemini-1.5-flash-002" });
+  // We strip the header if it exists to get just the raw base64
+  const cleanBase64 = base64Image.replace(/^data:image\/(png|jpg|jpeg|webp);base64,/, "");
 
-  const base64Data = base64Image.includes("base64,")
-    ? base64Image.split("base64,")[1]
-    : base64Image;
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "llama-3.2-90b-vision-preview", // High-intelligence vision model
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Analyze this nutrition label. Return a raw JSON object with these exact keys: calories, protein, carbs, fat. Values must be numbers. If the label shows 'per 100g', use those values. Do not include markdown formatting like ```json."
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${cleanBase64}`
+              }
+            }
+          ]
+        }
+      ],
+      temperature: 0.1,
+      response_format: { type: "json_object" } // Enforces strict JSON return
+    })
+  });
 
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Groq API Error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  
   try {
-    const response = await model.generateContent([
-      SYSTEM_PROMPT,
-      {
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: base64Data,
-        },
-      },
-    ]);
-
-    const textResponse = response.response.text();
-
-    const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("Could not extract JSON from response");
-    }
-
-    const nutritionData: NutritionData = JSON.parse(jsonMatch[0]);
-
-    if (
-      typeof nutritionData.calories !== "number" ||
-      typeof nutritionData.protein !== "number" ||
-      typeof nutritionData.carbs !== "number" ||
-      typeof nutritionData.fat !== "number"
-    ) {
-      throw new Error("Invalid nutrition data format");
-    }
-
+    const content = data.choices[0].message.content;
+    const parsed = JSON.parse(content);
     return {
-      calories: Math.round(nutritionData.calories),
-      protein: Math.round(nutritionData.protein),
-      carbs: Math.round(nutritionData.carbs),
-      fat: Math.round(nutritionData.fat),
+      calories: Number(parsed.calories || 0),
+      protein: Number(parsed.protein || 0),
+      carbs: Number(parsed.carbs || 0),
+      fat: Number(parsed.fat || 0)
     };
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Failed to analyze nutrition label");
+  } catch (e) {
+    console.error("Failed to parse Groq response:", data);
+    throw new Error("Failed to read nutrition data from the image.");
   }
-}
-
-export function saveApiKey(apiKey: string): void {
-  localStorage.setItem("gemini_api_key", apiKey);
-}
-
-export function getApiKey(): string | null {
-  return localStorage.getItem("gemini_api_key");
-}
-
-export function clearApiKey(): void {
-  localStorage.removeItem("gemini_api_key");
 }
