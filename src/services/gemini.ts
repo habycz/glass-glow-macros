@@ -5,7 +5,7 @@ interface NutritionData {
   fat: number;
 }
 
-const GEMINI_API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+const GEMINI_API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
 
 const SYSTEM_PROMPT = "Analyze this nutrition label image. Return a raw JSON object (no markdown) with these exact keys: calories, protein, carbs, fat. All values should be numbers. If the label shows 'per 100g', use those values.";
 
